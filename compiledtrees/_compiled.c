@@ -2097,8 +2097,8 @@ int __pyx_module_is_main_compiledtrees___compiled = 0;
 
 /* Implementation of 'compiledtrees._compiled' */
 static PyObject *__pyx_builtin_ValueError;
-static PyObject *__pyx_builtin_TypeError;
 static PyObject *__pyx_builtin_range;
+static PyObject *__pyx_builtin_TypeError;
 static PyObject *__pyx_builtin_RuntimeError;
 static PyObject *__pyx_builtin_ImportError;
 static PyObject *__pyx_builtin_MemoryError;
@@ -2738,10 +2738,9 @@ static PyObject *__pyx_pw_13compiledtrees_9_compiled_17CompiledPredictor_5predic
 }
 
 static PyObject *__pyx_pf_13compiledtrees_9_compiled_17CompiledPredictor_4predict(struct __pyx_obj_13compiledtrees_9_compiled_CompiledPredictor *__pyx_v_self, __Pyx_memviewslice __pyx_v_X, __Pyx_memviewslice __pyx_v_output, int __pyx_v_n_jobs) {
-  double (*__pyx_v_func)(float *);
+  double (*__pyx_v_func)(float *, int);
   Py_ssize_t __pyx_v_num_samples;
   int __pyx_v_i;
-  CYTHON_UNUSED int __pyx_v_n_jobs_samples;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -2751,154 +2750,169 @@ static PyObject *__pyx_pf_13compiledtrees_9_compiled_17CompiledPredictor_4predic
   Py_ssize_t __pyx_t_5;
   Py_ssize_t __pyx_t_6;
   Py_ssize_t __pyx_t_7;
-  PyObject *__pyx_t_8 = NULL;
+  int __pyx_t_8;
+  Py_ssize_t __pyx_t_9;
+  Py_ssize_t __pyx_t_10;
+  Py_ssize_t __pyx_t_11;
+  PyObject *__pyx_t_12 = NULL;
   __Pyx_RefNannySetupContext("predict", 0);
 
   /* "compiledtrees/_compiled.pyx":35
  *                 double[:] output,
  *                 int n_jobs):
- *         func = <double (*)(float*) nogil> self.func             # <<<<<<<<<<<<<<
+ *         func = <double (*)(float*, int) nogil> self.func             # <<<<<<<<<<<<<<
  *         cdef Py_ssize_t num_samples = X.shape[0]
  *         cdef int i
  */
-  __pyx_v_func = ((double (*)(float *))__pyx_v_self->func);
+  __pyx_v_func = ((double (*)(float *, int))__pyx_v_self->func);
 
   /* "compiledtrees/_compiled.pyx":36
  *                 int n_jobs):
- *         func = <double (*)(float*) nogil> self.func
+ *         func = <double (*)(float*, int) nogil> self.func
  *         cdef Py_ssize_t num_samples = X.shape[0]             # <<<<<<<<<<<<<<
  *         cdef int i
- *         cdef int n_jobs_samples = 1
+ * 
  */
   __pyx_v_num_samples = (__pyx_v_X.shape[0]);
 
-  /* "compiledtrees/_compiled.pyx":38
- *         cdef Py_ssize_t num_samples = X.shape[0]
- *         cdef int i
- *         cdef int n_jobs_samples = 1             # <<<<<<<<<<<<<<
- * 
- *         if num_samples > 1:
- */
-  __pyx_v_n_jobs_samples = 1;
-
   /* "compiledtrees/_compiled.pyx":40
- *         cdef int n_jobs_samples = 1
  * 
- *         if num_samples > 1:             # <<<<<<<<<<<<<<
- *             n_jobs_samples = n_jobs
- * 
+ *         # we need to separate sample and tree level parallelization - nested does not work
+ *         if num_samples > 2 * n_jobs:  # build some queue             # <<<<<<<<<<<<<<
+ *             for i in prange(num_samples,
+ *                             num_threads=n_jobs,
  */
-  __pyx_t_1 = ((__pyx_v_num_samples > 1) != 0);
+  __pyx_t_1 = ((__pyx_v_num_samples > (2 * __pyx_v_n_jobs)) != 0);
   if (__pyx_t_1) {
 
     /* "compiledtrees/_compiled.pyx":41
- * 
- *         if num_samples > 1:
- *             n_jobs_samples = n_jobs             # <<<<<<<<<<<<<<
- * 
- *         for i in prange(num_samples,
+ *         # we need to separate sample and tree level parallelization - nested does not work
+ *         if num_samples > 2 * n_jobs:  # build some queue
+ *             for i in prange(num_samples,             # <<<<<<<<<<<<<<
+ *                             num_threads=n_jobs,
+ *                             nogil=True,
  */
-    __pyx_v_n_jobs_samples = __pyx_v_n_jobs;
+    {
+        #ifdef WITH_THREAD
+        PyThreadState *_save;
+        Py_UNBLOCK_THREADS
+        __Pyx_FastGIL_Remember();
+        #endif
+        /*try:*/ {
+          __pyx_t_2 = __pyx_v_num_samples;
+          if (1 == 0) abort();
+          {
+              #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
+                  #undef likely
+                  #undef unlikely
+                  #define likely(x)   (x)
+                  #define unlikely(x) (x)
+              #endif
+              __pyx_t_4 = (__pyx_t_2 - 0 + 1 - 1/abs(1)) / 1;
+              if (__pyx_t_4 > 0)
+              {
+                  #ifdef _OPENMP
+                  #pragma omp parallel num_threads(__pyx_v_n_jobs) private(__pyx_t_5, __pyx_t_6, __pyx_t_7)
+                  #endif /* _OPENMP */
+                  {
+                      #ifdef _OPENMP
+                      #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
+                      #endif /* _OPENMP */
+                      for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_4; __pyx_t_3++){
+                          {
+                              __pyx_v_i = (int)(0 + 1 * __pyx_t_3);
+
+                              /* "compiledtrees/_compiled.pyx":45
+ *                             nogil=True,
+ *                             schedule="static"):
+ *                 output[i] = func(&X[i, 0], 1)             # <<<<<<<<<<<<<<
+ *         else:
+ *             for i in range(num_samples):
+ */
+                              __pyx_t_5 = __pyx_v_i;
+                              __pyx_t_6 = 0;
+                              __pyx_t_7 = __pyx_v_i;
+                              *((double *) ( /* dim=0 */ (__pyx_v_output.data + __pyx_t_7 * __pyx_v_output.strides[0]) )) = __pyx_v_func((&(*((float *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_X.data + __pyx_t_5 * __pyx_v_X.strides[0]) ) + __pyx_t_6 * __pyx_v_X.strides[1]) )))), 1);
+                          }
+                      }
+                  }
+              }
+          }
+          #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
+              #undef likely
+              #undef unlikely
+              #define likely(x)   __builtin_expect(!!(x), 1)
+              #define unlikely(x) __builtin_expect(!!(x), 0)
+          #endif
+        }
+
+        /* "compiledtrees/_compiled.pyx":41
+ *         # we need to separate sample and tree level parallelization - nested does not work
+ *         if num_samples > 2 * n_jobs:  # build some queue
+ *             for i in prange(num_samples,             # <<<<<<<<<<<<<<
+ *                             num_threads=n_jobs,
+ *                             nogil=True,
+ */
+        /*finally:*/ {
+          /*normal exit:*/{
+            #ifdef WITH_THREAD
+            __Pyx_FastGIL_Forget();
+            Py_BLOCK_THREADS
+            #endif
+            goto __pyx_L6;
+          }
+          __pyx_L6:;
+        }
+    }
 
     /* "compiledtrees/_compiled.pyx":40
- *         cdef int n_jobs_samples = 1
  * 
- *         if num_samples > 1:             # <<<<<<<<<<<<<<
- *             n_jobs_samples = n_jobs
- * 
+ *         # we need to separate sample and tree level parallelization - nested does not work
+ *         if num_samples > 2 * n_jobs:  # build some queue             # <<<<<<<<<<<<<<
+ *             for i in prange(num_samples,
+ *                             num_threads=n_jobs,
  */
+    goto __pyx_L3;
   }
 
-  /* "compiledtrees/_compiled.pyx":43
- *             n_jobs_samples = n_jobs
+  /* "compiledtrees/_compiled.pyx":47
+ *                 output[i] = func(&X[i, 0], 1)
+ *         else:
+ *             for i in range(num_samples):             # <<<<<<<<<<<<<<
+ *                 output[i] = func(&X[i, 0], n_jobs)
  * 
- *         for i in prange(num_samples,             # <<<<<<<<<<<<<<
- *                         num_threads=n_jobs_samples,
- *                         nogil=True,
  */
-  {
-      #ifdef WITH_THREAD
-      PyThreadState *_save;
-      Py_UNBLOCK_THREADS
-      __Pyx_FastGIL_Remember();
-      #endif
-      /*try:*/ {
-        __pyx_t_2 = __pyx_v_num_samples;
-        if (1 == 0) abort();
-        {
-            #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
-                #undef likely
-                #undef unlikely
-                #define likely(x)   (x)
-                #define unlikely(x) (x)
-            #endif
-            __pyx_t_4 = (__pyx_t_2 - 0 + 1 - 1/abs(1)) / 1;
-            if (__pyx_t_4 > 0)
-            {
-                #ifdef _OPENMP
-                #pragma omp parallel num_threads(__pyx_v_n_jobs_samples) private(__pyx_t_5, __pyx_t_6, __pyx_t_7)
-                #endif /* _OPENMP */
-                {
-                    #ifdef _OPENMP
-                    #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) schedule(static)
-                    #endif /* _OPENMP */
-                    for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_4; __pyx_t_3++){
-                        {
-                            __pyx_v_i = (int)(0 + 1 * __pyx_t_3);
+  /*else*/ {
+    __pyx_t_4 = __pyx_v_num_samples;
+    __pyx_t_3 = __pyx_t_4;
+    for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_3; __pyx_t_8+=1) {
+      __pyx_v_i = __pyx_t_8;
 
-                            /* "compiledtrees/_compiled.pyx":47
- *                         nogil=True,
- *                         schedule="static"):
- *             output[i] = func(&X[i, 0])             # <<<<<<<<<<<<<<
+      /* "compiledtrees/_compiled.pyx":48
+ *         else:
+ *             for i in range(num_samples):
+ *                 output[i] = func(&X[i, 0], n_jobs)             # <<<<<<<<<<<<<<
  * 
  *         return output
  */
-                            __pyx_t_5 = __pyx_v_i;
-                            __pyx_t_6 = 0;
-                            __pyx_t_7 = __pyx_v_i;
-                            *((double *) ( /* dim=0 */ (__pyx_v_output.data + __pyx_t_7 * __pyx_v_output.strides[0]) )) = __pyx_v_func((&(*((float *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_X.data + __pyx_t_5 * __pyx_v_X.strides[0]) ) + __pyx_t_6 * __pyx_v_X.strides[1]) )))));
-                        }
-                    }
-                }
-            }
-        }
-        #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
-            #undef likely
-            #undef unlikely
-            #define likely(x)   __builtin_expect(!!(x), 1)
-            #define unlikely(x) __builtin_expect(!!(x), 0)
-        #endif
-      }
-
-      /* "compiledtrees/_compiled.pyx":43
- *             n_jobs_samples = n_jobs
- * 
- *         for i in prange(num_samples,             # <<<<<<<<<<<<<<
- *                         num_threads=n_jobs_samples,
- *                         nogil=True,
- */
-      /*finally:*/ {
-        /*normal exit:*/{
-          #ifdef WITH_THREAD
-          __Pyx_FastGIL_Forget();
-          Py_BLOCK_THREADS
-          #endif
-          goto __pyx_L6;
-        }
-        __pyx_L6:;
-      }
+      __pyx_t_9 = __pyx_v_i;
+      __pyx_t_10 = 0;
+      __pyx_t_11 = __pyx_v_i;
+      *((double *) ( /* dim=0 */ (__pyx_v_output.data + __pyx_t_11 * __pyx_v_output.strides[0]) )) = __pyx_v_func((&(*((float *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_X.data + __pyx_t_9 * __pyx_v_X.strides[0]) ) + __pyx_t_10 * __pyx_v_X.strides[1]) )))), __pyx_v_n_jobs);
+    }
   }
+  __pyx_L3:;
 
-  /* "compiledtrees/_compiled.pyx":49
- *             output[i] = func(&X[i, 0])
+  /* "compiledtrees/_compiled.pyx":50
+ *                 output[i] = func(&X[i, 0], n_jobs)
  * 
  *         return output             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_8 = __pyx_memoryview_fromslice(__pyx_v_output, 1, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);; if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 49, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_8);
-  __pyx_r = __pyx_t_8;
-  __pyx_t_8 = 0;
+  __pyx_t_12 = __pyx_memoryview_fromslice(__pyx_v_output, 1, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);; if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 50, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_12);
+  __pyx_r = __pyx_t_12;
+  __pyx_t_12 = 0;
   goto __pyx_L0;
 
   /* "compiledtrees/_compiled.pyx":31
@@ -2911,7 +2925,7 @@ static PyObject *__pyx_pf_13compiledtrees_9_compiled_17CompiledPredictor_4predic
 
   /* function exit code */
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_8);
+  __Pyx_XDECREF(__pyx_t_12);
   __Pyx_AddTraceback("compiledtrees._compiled.CompiledPredictor.predict", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
@@ -19321,8 +19335,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
 };
 static int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(0, 18, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 47, __pyx_L1_error)
   __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(1, 2, __pyx_L1_error)
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(2, 242, __pyx_L1_error)
   __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) __PYX_ERR(2, 810, __pyx_L1_error)
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(2, 1000, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(1, 147, __pyx_L1_error)

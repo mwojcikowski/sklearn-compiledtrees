@@ -20,6 +20,16 @@ else:
     CXX_COMPILER = sysconfig.get_config_var('CXX')
     delete_files = True
 
+# detect OpenMP support
+if platform.system() == 'Darwin':
+    c_ver = subprocess.check_output([CXX_COMPILER, '--version']).decode('ascii')
+    if c_ver.find('clang') >= 0:  # Xcode clang does not support OpenMP
+        OPENMP_SUPPORT = False
+    else:  # GCC supports OpenMP
+        OPENMP_SUPPORT = True
+else:
+    OPENMP_SUPPORT = True
+
 EVALUATE_FN_NAME = "evaluate"
 ALWAYS_INLINE = "__attribute__((__always_inline__))"
 
@@ -161,18 +171,25 @@ def code_gen_ensemble(trees, individual_learner_weight, initial_value,
         gen = CodeGenerator()
 
     tree_files = [_gen_tree(i, tree) for i, tree in enumerate(trees)]
+    if OPENMP_SUPPORT:
+        gen.write("#include <omp.h>")
 
     with gen.bracketed('extern "C" {', "}"):
         # add dummy definitions if you will compile in parallel
         for i, tree in enumerate(trees):
             name = "{name}_{index}".format(name=EVALUATE_FN_NAME, index=i)
             gen.write("double {name}(float* f);".format(name=name))
-
-        fn_decl = "double {name}(float* f) {{".format(name=EVALUATE_FN_NAME)
+        func_pointers = ", ".join(["&{name}_{index}".format(name=EVALUATE_FN_NAME, index=i) for i in range(len(trees))])
+        gen.write("double (* funcs [{n}])(float* f) = {{{f}}};".format(f=func_pointers, n=len(trees)))
+        fn_decl = "double {name}(float* f, int n_jobs) {{".format(name=EVALUATE_FN_NAME)
         with gen.bracketed(fn_decl, "}"):
+            # if OPENMP_SUPPORT:
+            #     gen.write("omp_set_num_threads(n_jobs);")
             gen.write("double result = {0};".format(initial_value))
-            for i, _ in enumerate(trees):
-                increment = "result += {name}_{index}(f) * {weight};".format(
+            gen.write("int i;")
+            gen.write("#pragma omp parallel for num_threads(n_jobs) schedule(static) private(i) reduction(+:result)")
+            with gen.bracketed("for(int i=0; i<{n}; ++i)\n{{".format(n=len(trees)), "}"):
+                increment = "result += funcs[i](f) * {weight};".format(
                     name=EVALUATE_FN_NAME,
                     index=i,
                     weight=individual_learner_weight)
@@ -191,7 +208,7 @@ def _compile(cpp_f):
                                       delete=delete_files)
     if platform.system() == 'Windows':
         o_f.close()
-    _call([CXX_COMPILER, cpp_f, "-c", "-fPIC", "-o", o_f.name, "-O3", "-pipe"])
+    _call([CXX_COMPILER, cpp_f, "-c", "-fPIC", "-fopenmp" if OPENMP_SUPPORT else "", "-o", o_f.name, "-O3", "-pipe"])
     return o_f
 
 
@@ -233,8 +250,9 @@ def compile_code_to_object(files, n_jobs=1):
             list_ofiles.write((f.name.replace('\\', '\\\\') +
                                "\r").encode('latin1'))
         list_ofiles.close()
-        _call([CXX_COMPILER, "-shared", "@%s" % list_ofiles.name, "-fPIC",
-               "-flto", "-o", so_f.name, "-O3", "-pipe"])
+        _call([CXX_COMPILER, "-shared", "@%s" % list_ofiles.name,
+               "-fopenmp" if OPENMP_SUPPORT else "", "-fPIC", "-flto", "-o",
+               so_f.name, "-O3", "-pipe"])
 
         # cleanup files
         for f in o_files:
@@ -245,6 +263,7 @@ def compile_code_to_object(files, n_jobs=1):
     else:
         _call([CXX_COMPILER, "-shared"] +
               [f.name for f in o_files] +
-              ["-fPIC", "-flto", "-o", so_f.name, "-O3", "-pipe"])
+              ["-fPIC", "-flto", "-fopenmp" if OPENMP_SUPPORT else "", "-o",
+               so_f.name, "-O3", "-pipe"])
 
     return so_f

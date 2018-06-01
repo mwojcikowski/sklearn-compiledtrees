@@ -32,18 +32,19 @@ cdef class CompiledPredictor:
                 float[:, :] X,
                 double[:] output,
                 int n_jobs):
-        func = <double (*)(float*) nogil> self.func
+        func = <double (*)(float*, int) nogil> self.func
         cdef Py_ssize_t num_samples = X.shape[0]
         cdef int i
-        cdef int n_jobs_samples = 1
 
-        if num_samples > 1:
-            n_jobs_samples = n_jobs
-
-        for i in prange(num_samples,
-                        num_threads=n_jobs_samples,
-                        nogil=True,
-                        schedule="static"):
-            output[i] = func(&X[i, 0])
+        # we need to separate sample and tree level parallelization - nested does not work
+        if num_samples > 2 * n_jobs:  # build some queue
+            for i in prange(num_samples,
+                            num_threads=n_jobs,
+                            nogil=True,
+                            schedule="static"):
+                output[i] = func(&X[i, 0], 1)
+        else:
+            for i in range(num_samples):
+                output[i] = func(&X[i, 0], n_jobs)
 
         return output
